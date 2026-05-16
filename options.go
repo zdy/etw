@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 package etw
 
@@ -55,6 +56,22 @@ type SessionOptions struct {
 	// original API reference:
 	// https://docs.microsoft.com/en-us/windows/win32/api/evntrace/ns-evntrace-enable_trace_parameters
 	EnableProperties []EnableProperty
+
+	// BufferSizeKB specifies the size of each ETW buffer in kilobytes.
+	// Zero keeps the Windows default.
+	BufferSizeKB uint32
+
+	// MinBuffers specifies the minimum number of buffers allocated by ETW.
+	// Zero keeps the Windows default.
+	MinBuffers uint32
+
+	// MaxBuffers specifies the maximum number of buffers allocated by ETW.
+	// Zero keeps the Windows default.
+	MaxBuffers uint32
+
+	// FlushTimerSec specifies how often ETW flushes buffers, in seconds.
+	// Zero keeps the Windows default.
+	FlushTimerSec uint32
 }
 
 // Option is any function that modifies SessionOptions. Options will be called
@@ -89,7 +106,8 @@ func WithLevel(lvl TraceLevel) Option {
 //
 // For more info take a look a SessionOptions docs. To query keywords defined
 // by specific provider identified by <GUID> try:
-//     logman query providers <GUID>
+//
+//	logman query providers <GUID>
 func WithMatchKeywords(anyKeyword, allKeyword uint64) Option {
 	return func(cfg *SessionOptions) {
 		cfg.MatchAnyKeyword = anyKeyword
@@ -106,6 +124,38 @@ func WithMatchKeywords(anyKeyword, allKeyword uint64) Option {
 func WithProperty(p EnableProperty) Option {
 	return func(cfg *SessionOptions) {
 		cfg.EnableProperties = append(cfg.EnableProperties, p)
+	}
+}
+
+// WithBufferSizeKB specifies the size of each ETW buffer in kilobytes.
+// Passing zero keeps the Windows default.
+func WithBufferSizeKB(size uint32) Option {
+	return func(cfg *SessionOptions) {
+		cfg.BufferSizeKB = size
+	}
+}
+
+// WithMinBuffers specifies the minimum number of buffers allocated by ETW.
+// Passing zero keeps the Windows default.
+func WithMinBuffers(count uint32) Option {
+	return func(cfg *SessionOptions) {
+		cfg.MinBuffers = count
+	}
+}
+
+// WithMaxBuffers specifies the maximum number of buffers allocated by ETW.
+// Passing zero keeps the Windows default.
+func WithMaxBuffers(count uint32) Option {
+	return func(cfg *SessionOptions) {
+		cfg.MaxBuffers = count
+	}
+}
+
+// WithFlushTimerSec specifies how often ETW flushes buffers, in seconds.
+// Passing zero keeps the Windows default.
+func WithFlushTimerSec(seconds uint32) Option {
+	return func(cfg *SessionOptions) {
+		cfg.FlushTimerSec = seconds
 	}
 }
 

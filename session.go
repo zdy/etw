@@ -1,4 +1,5 @@
-//+build windows
+//go:build windows
+// +build windows
 
 // Package etw allows you to receive Event Tracing for Windows (ETW) events.
 //
@@ -31,12 +32,11 @@ import (
 //
 // Having ExistsError you have an option to force kill the session:
 //
-//		var exists etw.ExistsError
-//		s, err = etw.NewSession(s.guid, etw.WithName(sessionName))
-//		if errors.As(err, &exists) {
-//			err = etw.KillSession(exists.SessionName)
-//		}
-//
+//	var exists etw.ExistsError
+//	s, err = etw.NewSession(s.guid, etw.WithName(sessionName))
+//	if errors.As(err, &exists) {
+//		err = etw.KillSession(exists.SessionName)
+//	}
 type ExistsError struct{ SessionName string }
 
 func (e ExistsError) Error() string {
@@ -230,6 +230,10 @@ func (s *Session) createETWSession() error {
 
 	// Mark that we are going to process events in real time using a callback.
 	pProperties.LogFileMode = C.EVENT_TRACE_REAL_TIME_MODE
+	pProperties.BufferSize = C.ulong(s.config.BufferSizeKB)
+	pProperties.MinimumBuffers = C.ulong(s.config.MinBuffers)
+	pProperties.MaximumBuffers = C.ulong(s.config.MaxBuffers)
+	pProperties.FlushTimer = C.ulong(s.config.FlushTimerSec)
 
 	ret := C.StartTraceW(
 		&s.hSession,
