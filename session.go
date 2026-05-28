@@ -146,12 +146,20 @@ func (s *Session) UpdateOptions(options ...Option) error {
 func (s *Session) Close() error {
 	// "Be sure to disable all providers before stopping the session."
 	// https://docs.microsoft.com/en-us/windows/win32/etw/configuring-and-starting-an-event-tracing-session
-	if err := s.unsubscribeFromProvider(); err != nil {
-		return fmt.Errorf("failed to disable provider; %w", err)
-	}
+	return closeSession(s.unsubscribeFromProvider, s.stopSession)
+}
 
-	if err := s.stopSession(); err != nil {
-		return fmt.Errorf("failed to stop session; %w", err)
+func closeSession(unsubscribeFromProvider, stopSession func() error) error {
+	unsubscribeErr := unsubscribeFromProvider()
+	stopErr := stopSession()
+	if unsubscribeErr != nil && stopErr != nil {
+		return fmt.Errorf("failed to disable provider: %v; failed to stop session; %w", unsubscribeErr, stopErr)
+	}
+	if unsubscribeErr != nil {
+		return fmt.Errorf("failed to disable provider; %w", unsubscribeErr)
+	}
+	if stopErr != nil {
+		return fmt.Errorf("failed to stop session; %w", stopErr)
 	}
 	return nil
 }
