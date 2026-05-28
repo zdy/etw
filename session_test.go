@@ -1,3 +1,4 @@
+//go:build windows
 // +build windows
 
 package etw_test
@@ -134,8 +135,9 @@ func (s *sessionSuite) TestUpdating() {
 func (s *sessionSuite) TestParsing() {
 	const deadline = 20 * time.Second
 
-	go s.generateEvents(
+	go s.generateEventsWithDelay(
 		s.ctx,
+		10*time.Millisecond,
 		[]msetw.Level{msetw.LevelInfo},
 		msetw.StringField("string", "string value"),
 		msetw.StringArray("stringArray", []string{"1", "2", "3"}),
@@ -253,6 +255,30 @@ func (s *sessionSuite) TestEventOutsideCallback() {
 
 	s.Require().NoError(session.Close(), "Failed to close session properly")
 	s.waitForSignal(done, deadline, "Failed to stop event processing")
+}
+
+func (s sessionSuite) generateEventsWithDelay(ctx context.Context, delay time.Duration, levels []msetw.Level, fields ...msetw.FieldOpt) {
+	if fields == nil {
+		fields = msetw.WithFields(msetw.StringField("TestField", "Foo"))
+	}
+	s.Require().NotEmpty(levels, "Incorrect generateEventsWithDelay usage")
+
+	ticker := time.NewTicker(delay)
+	defer ticker.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			for _, l := range levels {
+				_ = s.provider.WriteEvent(
+					"TestEvent",
+					msetw.WithEventOpts(msetw.WithLevel(l)),
+					msetw.WithFields(fields...),
+				)
+			}
+		}
+	}
 }
 
 // trySignal tries to send a signal to @done if it's ready to receive.
